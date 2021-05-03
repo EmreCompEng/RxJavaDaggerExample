@@ -4,9 +4,14 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import io.reactivex.*
+import io.reactivex.Observable
+import io.reactivex.Observer
 import io.reactivex.disposables.Disposable
 import io.reactivex.observables.GroupedObservable
 import io.reactivex.schedulers.Schedulers
+import okio.Timeout
+import java.util.*
+import java.util.concurrent.TimeUnit
 
 
 //Log.i("RxJava","")
@@ -19,11 +24,11 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         //---Observable, Flowable , Single ,Maybe ,Completable---
-        //ObservableExample()
-        //ObservableAllMethodsExample()
-        //SingleObserverExample()
-        //MaybeObserverExample()
-        //CompletableObserverExample()
+        //ObservableExample()               //
+        //ObservableAllMethodsExample()     //
+        //SingleObserverExample()           //
+        //MaybeObserverExample()            // Tek veri geri iletir
+        //CompletableObserverExample()      // Herhangi bir veri dönmez
 
         //---RXJava Scheduler Türleri---
         // Schedulers, RxJava’da işlemlerin gerçekleştiği yada sonuçlarının yayınlandığı küçük tasklar oluşturur.
@@ -33,13 +38,368 @@ class MainActivity : AppCompatActivity() {
         //Observable değişkeninizde Schedulers’ları observeOn ya da subscribeOn ile kullanabilirsiniz.
         // TODO Schedulers yapıları örnekleme
 
-        // ---RxJava Operatorler---
+        // ---RxJava Operatorler--- Dönüştürmeler
         //SwitchMapOperator()  // Sadece Son Değeri getirir
         //FlatMapOperator()    // İşlemleri Karışık yapar
         //ContactMapOperator() // İşlemleri Sıralı yapar
         //GroupByOperator()    // Gruplama
-        //ScanOperator()         // Birleştirme
+        //ScanOperator()       // Birleştirme
 
+        // ---RxJava Operatorler--- Filtreleme
+        //DistinctOperator()        // Verilerin hespi uniq dir tekrarlı veri olmaz
+        //ElementAtOperator()       // Verilen indexteki elemanı getirir
+        //FilterOperator()          // Filtreleme
+        //IgnoreElementsOperator()  // Herhangi bir veri dönmez sadece işlem tamamlanınca haber verir
+        //SampleOperator()          // Parçalayarak alır
+        //SkipOperator()            // Verilerde atlama yapılır
+        //SkipLastOperator()          // Sondan atlama yapar
+        //TakeOpearator()             // ilk verilen kadar eleman getirir
+        //TakeLastOperator()            // Sondan n elamanı getirir
+
+
+    }
+
+    private fun TakeLastOperator() {
+        Log.i("RxJava", "IgnoreElementsOperator")
+        // Take operatöründen farklı olarak ilk değil son n elemanı iletir.
+        // Diğerlerini görmezden gelir. takeLast(n) şeklinde kullanılır.
+
+        //---Çıktı---
+        // IgnoreElementsOperator
+        // onSubscribe
+        // onNext :7
+        // onNext :8
+        // onNext :9
+        // onComplete
+
+        Observable.just(1, 2, 3, 4, 5, 6, 7, 8, 9)
+                .takeLast(3)
+                .subscribe(object : Observer<Int> {
+                    override fun onSubscribe(d: Disposable) {
+                        Log.i("RxJava", "onSubscribe")
+                    }
+
+                    override fun onNext(t: Int) {
+                        Log.i("RxJava", "onNext :$t")
+                    }
+
+                    override fun onError(e: Throwable) {
+                        Log.i("RxJava", "onError")
+                    }
+
+                    override fun onComplete() {
+                        Log.i("RxJava", "onComplete")
+                    }
+
+                })
+
+
+    }
+
+    private fun TakeOpearator() {
+        Log.i("RxJava", "IgnoreElementsOperator")
+        // Skip operatörünün tam tersi gibi çalışır.
+        // Skip ilk n sayıdaki elemanı görmezden gelirken,take ise sadece ilk n sayıdaki elemanı iletmektedir.
+        // take(n) şeklinde kullanılır.
+        // Aşağıdaki örnekte Observable’ın yaydığı 1,….,8 sayılarından
+        // take(4) operatörü ile sadece ilk 4 eleman Observer’a iletilmiştir.
+
+        //---Çıktı---
+        // IgnoreElementsOperator
+        // onSubscribe
+        // onNext :1
+        // onNext :2
+        // onNext :3
+        // onNext :4
+        // onComplete
+
+        Observable.just(1, 2, 3, 4, 5, 6, 7, 8, 9)
+                .take(4)
+                .subscribe(object : Observer<Int> {
+                    override fun onSubscribe(d: Disposable) {
+                        Log.i("RxJava", "onSubscribe")
+                    }
+
+                    override fun onNext(t: Int) {
+                        Log.i("RxJava", "onNext :$t")
+                    }
+
+                    override fun onError(e: Throwable) {
+                        Log.i("RxJava", "onError")
+                    }
+
+                    override fun onComplete() {
+                        Log.i("RxJava", "onComplete")
+                    }
+
+                })
+
+
+    }
+
+    private fun SkipLastOperator() {
+        Log.i("RxJava", "IgnoreElementsOperator")
+
+        // Skiplast operatörü,skip operatöründen farklı olarak son n sayıdaki elemanın iletilmesini engeller.
+        // skipLast(n) şeklinde kullanılır.
+        // Aşağıdaki örnekte Observable’ın yaydığı son 3 eleman Observer’a iletilmemiştir.
+
+        //---Çıktı--
+        // IgnoreElementsOperator
+        // onSubscribe
+        // onNext :1
+        // onNext :2
+        // onNext :3
+        // onNext :4
+        // onNext :5
+        // onNext :6
+        // onComplete
+
+        Observable.just(1, 2, 3, 4, 5, 6, 7, 8, 9)
+                .skipLast(3)
+                .subscribe(object : Observer<Int> {
+                    override fun onSubscribe(d: Disposable) {
+                        Log.i("RxJava", "onSubscribe")
+                    }
+
+                    override fun onNext(t: Int) {
+                        Log.i("RxJava", "onNext :$t")
+                    }
+
+                    override fun onError(e: Throwable) {
+                        Log.i("RxJava", "onError")
+                    }
+
+                    override fun onComplete() {
+                        Log.i("RxJava", "onComplete")
+                    }
+
+                })
+
+
+    }
+
+    private fun SkipOperator() {
+        Log.i("RxJava", "IgnoreElementsOperator")
+
+        // Skip operatörü Observable’ın yaydığı ilk n elemanı yok sayar ve sonrasındaki elemanları iletir.
+        // skip(n) şeklinde kullanılır.
+        // Aşağıdaki örnekte skip(3) değeri ile ilk 3 eleman Observer’a iletilmemiştir.
+
+        //---Çıktı---
+        // IgnoreElementsOperator
+        // onSubscribe
+        // onNext :4
+        // onNext :5
+        // onNext :6
+        // onNext :7
+        // onNext :8
+        // onComplete
+
+        Observable.just(1, 2, 3, 4, 5, 6, 7, 8)
+                .skip(3)
+                .subscribe(object : Observer<Int> {
+                    override fun onSubscribe(d: Disposable) {
+                        Log.i("RxJava", "onSubscribe")
+                    }
+
+                    override fun onNext(t: Int) {
+                        Log.i("RxJava", "onNext :$t")
+                    }
+
+                    override fun onError(e: Throwable) {
+                        Log.i("RxJava", "onError")
+                    }
+
+                    override fun onComplete() {
+                        Log.i("RxJava", "onComplete")
+                    }
+
+                })
+
+
+    }
+
+    private fun SampleOperator() {
+        Log.i("RxJava", "IgnoreElementsOperator")
+        // Sample operatörü seçilen belli bir periyot sonunda, Observable’ın o periyot içinde yaydığı son elemanı alıp onu iletir.
+        // Örneğin aşağıdaki örnekte Observable her saniye değerini Long cinsinden yaymaktadır.
+        // Sample, içinde belirtilen 3 saniye periyodu ile her 3 saniye sonunda,Observable tarafından yayınlanan en son elemanı Observer’a iletiyor.
+
+        // ---Çıktı---
+        // IgnoreElementsOperator
+        // onSubscribe
+        // onNext :3
+        // onNext :5
+        // onNext :9
+        // onNext :12
+        // onNext :15
+        // onNext :17
+        // onNext :20
+        // ...
+
+        val timeObservable = Observable.interval(0, 1, TimeUnit.SECONDS)
+
+        timeObservable
+                .sample(3, TimeUnit.SECONDS)
+                .subscribe(object : Observer<Long> {
+                    override fun onSubscribe(d: Disposable) {
+                        Log.i("RxJava", "onSubscribe")
+                    }
+
+                    override fun onNext(t: Long) {
+                        Log.i("RxJava", "onNext :$t")
+                    }
+
+                    override fun onError(e: Throwable) {
+                        Log.i("RxJava", "onError")
+                    }
+
+                    override fun onComplete() {
+                        Log.i("RxJava", "onComplete")
+                    }
+
+                })
+
+
+    }
+
+    private fun IgnoreElementsOperator() {
+        Log.i("RxJava", "IgnoreElementsOperator")
+        // IgnoreElements operatörü herhangi bir veri yaymaz.
+        // Sadece işlemi tamamlandığını ya da hata alıp almadığını Observer’a iletir.
+        // Observable’ın yaydığı verilerle ilgilinmiyorsanız bu operatörü kullanabilirsiniz.
+
+        //---Çıktı---
+        // IgnoreElementsOperator
+        // onSubscribe
+        // onComplete
+
+        Observable.just(1, 2, 3, 4, 5, 6, 7, 8)
+                .ignoreElements()
+                .subscribe(object : CompletableObserver {
+                    override fun onSubscribe(d: Disposable) {
+                        Log.i("RxJava", "onSubscribe")
+                    }
+
+                    override fun onComplete() {
+                        Log.i("RxJava", "onComplete")
+                    }
+
+                    override fun onError(e: Throwable) {
+                        Log.i("RxJava", "onError")
+                    }
+
+                })
+    }
+
+    private fun FilterOperator() {
+        Log.i("RxJava", "FilterOperator")
+        // Filter operatörü Observable tarafından yayılan veriyi bir filtreye tabi tutar ve bu filtreyi geçen veriler dinleyici olan Observer’a iletilir.
+        // Aşağıdaki örnekte Observable tarafından yayılan her sayı filter fonksiyonuna düşmekte ve burda t >3 kontrolü yapılmaktadır.
+        // 3'ten büyük olan değerler koşulu sağladığından sırayla Observer onNext metoduna düşecektir.
+
+        //---Çıktı---
+        // FilterOperator
+        // onSubscribe
+        // onNext :4
+        // onNext :5
+        // onNext :6
+        // onComplete
+
+        Observable.just(1, 2, 3, 4, 5, 6)
+                .filter { t -> t > 3 }
+                .subscribe(object : Observer<Int> {
+                    override fun onSubscribe(d: Disposable) {
+                        Log.i("RxJava", "onSubscribe")
+                    }
+
+                    override fun onNext(t: Int) {
+                        Log.i("RxJava", "onNext :$t")
+                    }
+
+                    override fun onError(e: Throwable) {
+                        Log.i("RxJava", "onError")
+                    }
+
+                    override fun onComplete() {
+                        Log.i("RxJava", "onComplete")
+                    }
+
+                })
+    }
+
+    private fun ElementAtOperator() {
+        Log.i("RxJava", "ElementAtOperator")
+        // ElementAt operatörü bize Observable tarafından yayılan verinin istediğimiz elemanına ulaşmamızı sağlar.
+        // elementAt(index) içinde seçilen index indisine sahip eleman dinleyici olan Observer’a gönderilir ve onSucces metoduna düşer.
+        // Eğer o indexte eleman yoksa önce onSubscribe sonra onComplete motodu çalışır,herhangi bir veri gelmez.
+
+        // ElementAtOperator
+        // onSubscribe
+        // onSuccess :2
+
+        Observable.just(1, 2, 3, 4, 5, 6)
+                .elementAt(1)
+                .subscribe(object : MaybeObserver<Int> {
+                    override fun onSubscribe(d: Disposable) {
+                        Log.i("RxJava", "onSubscribe")
+                    }
+
+                    override fun onSuccess(t: Int) {
+                        Log.i("RxJava", "onSuccess :$t")
+                    }
+
+                    override fun onError(e: Throwable) {
+                        Log.i("RxJava", "onError")
+                    }
+
+                    override fun onComplete() {
+                        Log.i("RxJava", "onComplete")
+                    }
+
+                })
+
+    }
+
+    private fun DistinctOperator() {
+        Log.i("RxJava", "DistinctOperator")
+        // Distinct operatörü Observable tarafından yayılan veri içindeki tekrarlanan elemanları engeller.
+        // Herhangi bir objenin tekrarlanıp tekrarlanmadığını kontrol ederken objenin equals metodu kullanır.
+        // Aynı itemin birinci seferden sonra dinleyici olan Observer’a gönderilmez.
+        // Aşağıdaki örnekte bir sayı dizisi tekrarlanan elemanlardan oluşmaktadır.
+        // Distinct metodu bu tekrarlanan elemanları sadece bir kez yayınlayacaktır.
+
+        //---Çıktı---
+        // DistinctOperator
+        // onSubscribe
+        // onNext :10
+        // onNext :20
+        // onNext :30
+        // onNext :40
+        // onNext :50
+        // onNext :15
+        // onComplete
+
+        Observable.just(10, 20, 30, 10, 20, 30, 40, 50, 10, 15)
+                .distinct()
+                .subscribe(object : Observer<Int> {
+                    override fun onSubscribe(d: Disposable) {
+                        Log.i("RxJava", "onSubscribe")
+                    }
+
+                    override fun onNext(t: Int) {
+                        Log.i("RxJava", "onNext :$t")
+                    }
+
+                    override fun onError(e: Throwable) {
+                        Log.i("RxJava", "onError")
+                    }
+
+                    override fun onComplete() {
+                        Log.i("RxJava", "onComplete")
+                    }
+                })
 
     }
 
@@ -54,9 +414,9 @@ class MainActivity : AppCompatActivity() {
         // yine string birleştirme işlemi yapılarak “JA” dönüyor.İşlem bu şekilde son veri de gelene kadar devam ediyor.
 
         Log.i("RxJava", "ScanOperator")
-        Observable.just("K", "O","T","L","İ","N",)
-                .scan { t1, t2 -> t1+t2 }
-                .subscribe(object :Observer<String>{
+        Observable.just("K", "O", "T", "L", "İ", "N")
+                .scan { t1, t2 -> t1 + t2 }
+                .subscribe(object : Observer<String> {
                     override fun onSubscribe(d: Disposable) {
                         Log.i("RxJava", "onSubscribe")
                     }
