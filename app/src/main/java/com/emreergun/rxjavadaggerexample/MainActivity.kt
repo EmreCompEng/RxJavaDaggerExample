@@ -7,14 +7,11 @@ import io.reactivex.*
 import io.reactivex.Observable
 import io.reactivex.Observer
 import io.reactivex.disposables.Disposable
+import io.reactivex.functions.BiFunction
 import io.reactivex.observables.GroupedObservable
 import io.reactivex.schedulers.Schedulers
-import okio.Timeout
 import java.util.*
 import java.util.concurrent.TimeUnit
-
-
-//Log.i("RxJava","")
 
 class MainActivity : AppCompatActivity() {
 
@@ -56,11 +53,257 @@ class MainActivity : AppCompatActivity() {
         //TakeOpearator()             // ilk verilen kadar eleman getirir
         //TakeLastOperator()            // Sondan n elamanı getirir
 
+        // ---RxJava Operatorler--- Observable Birleştirme
+        //MergeOperator()   // Aynı anda yayına başlarlar , sıra gözetmezler, hepsi bitince tamalanır
+        //ConcatOperator()   // 1.Observer biter 2.cisi başlar ve ikiside en son Observable bitince tamamlanır
+        //ZipOperator()     // aynı indisli elemanlar biribirini bekler ve en küçük indi kadar işlem yapar ve biter
+        //SwitchOnNextOperator()
+        CombinedLastOperator()
+
+
+        //  Log.i("RxJava", "__________")
+    }
+
+    private fun CombinedLastOperator() {
+        Log.i("RxJava", "CombinedLastOperator")
+
+        // CombineLatest operatörü yayınlanan her Observable değerini,
+        // diğer Observable’ın yayınlanan en son değeri ile birlikte verir.
+        // Bu iki değeri istediğiniz şekilde işleme sokup,dinleyici olan Observer’a iletebilirsiniz.
+
+        // Aşağıdaki örnekte 400 milisaniye ve 250 milisaniyelik periyotlarla yayın yapan iki Observable yayıncısı bulunmaktadır.
+        // Her iki Observable’ın da yayınlanan her değeri ,diğer Observable’ın en son yayınlanan değeri ile birlikte apply metodu içine düşmektedir.
+
+        val observable1 = Observable.interval(400, TimeUnit.MILLISECONDS)
+        val observable2 = Observable.interval(250, TimeUnit.MILLISECONDS)
+
+        Observable
+                .combineLatest(observable1,observable2, { t1, t2 -> "observable1 value :$t1 ,observable2 value :$t2" })
+                .take(10)
+                .subscribe(object :Observer<String>{
+                    override fun onSubscribe(d: Disposable) {
+                        Log.i("RxJava", "onSubscribe")
+                    }
+
+                    override fun onNext(t: String) {
+                        Log.i("RxJava", "onNext :$t")
+                    }
+
+                    override fun onError(e: Throwable) {
+                        Log.i("RxJava", "onError")
+                    }
+
+                    override fun onComplete() {
+                        Log.i("RxJava", "onComplete")
+                    }
+
+                })
+
+        // ---Çıktı---
+        // CombinedLastOperator
+        // onSubscribe
+        // onNext :observable1 value :0 ,observable2 value :0
+        // onNext :observable1 value :0 ,observable2 value :1
+        // onNext :observable1 value :0 ,observable2 value :2
+        // onNext :observable1 value :1 ,observable2 value :2
+        // onNext :observable1 value :1 ,observable2 value :3
+        // onNext :observable1 value :2 ,observable2 value :3
+        // onNext :observable1 value :2 ,observable2 value :4
+        // onNext :observable1 value :2 ,observable2 value :5
+        // onNext :observable1 value :3 ,observable2 value :5
+        // onNext :observable1 value :3 ,observable2 value :6
+        // onComplete
+
+
+    }
+
+    private fun SwitchOnNextOperator() {
+        Log.i("RxJava", "SwitchOnNextOperator")
+
+        // SwitchOnNext operatörü iç içe Observable yayıncılarından oluşur.
+        // Dıştaki Observable ilk elemanı yayınlandıktan sonra,
+        // içteki Observable yayınlanmaya başlar taki ilk Observable’ın ikinci elemanı yayınlanana kadar.
+        // Bu şekilde işlem sürekli tekrar eder.
+        // Aşağıdaki örnekte birinci Observable 600 milisaniye arayla,
+        // ikinci Observable ise 100 milisaniye arayla eleman yayınlar.
+
+
+        val firstObservable = Observable.interval(600, TimeUnit.MILLISECONDS)
+        val secondObservable = Observable.interval(100, TimeUnit.MILLISECONDS)
+
+        Observable
+                .switchOnNext(firstObservable.map { secondObservable })
+                .subscribe(object : Observer<Long> {
+                    override fun onSubscribe(d: Disposable) {
+                        Log.i("RxJava", "onSubscribe")
+                    }
+
+                    override fun onNext(t: Long) {
+                        Log.i("RxJava", "onNext :$t")
+                    }
+
+                    override fun onError(e: Throwable) {
+                        Log.i("RxJava", "onError")
+                    }
+
+                    override fun onComplete() {
+                        Log.i("RxJava", "onComplete")
+                    }
+
+                })
+        Thread.sleep(1800)
+    }
+
+    private fun ZipOperator() {
+        Log.i("RxJava", "ZipOperator")
+
+        // Zip operatörü yine birden çok Observable’ı birleştirmek için kullanılır.
+        // Burdaki en önemli özellik zip içinde kullanılan her Observable’ın
+        // aynı indisli elemanların birbirini beklemesidir.
+        // Daha az elemanlı Observable’ın eleman sayısı kadar işlem yapılır.
+        // Aşağıdaki örnekte birinci Observable 1 saniye arayla A0,A1,A2 elemanlarını yayacak,
+        // ikinci Observable ise 2 saniye arayla B0,B1,B2,B3,B4 elemanlarını yayacak.
+        // Birinci Observable’ın elemanları her zaman ikinci Observable’ın aynı indisli elemanlarını bekleyecek
+        // ve 3. elemandan sonra birinci Observable elemanları biteceğinden tüm işlem sonlanır,onComplete metodu çalışır.
+
+        val alphabets1 = Observable.intervalRange(0, 6, 1, 1, TimeUnit.SECONDS)
+                .map { id -> "A$id" }
+        val alphabets2 = Observable.intervalRange(0, 8, 2, 1, TimeUnit.SECONDS)
+                .map { id -> "B$id" }
+
+        Observable.zip(alphabets1, alphabets2, { t1, t2 -> "$t1 $t2" })
+                .subscribe(object : Observer<String> {
+                    override fun onSubscribe(d: Disposable) {
+                        Log.i("RxJava", "onSubscribe")
+                    }
+
+                    override fun onNext(t: String) {
+                        Log.i("RxJava", "onNext :$t")
+                    }
+
+                    override fun onError(e: Throwable) {
+                        Log.i("RxJava", "onError")
+                    }
+
+                    override fun onComplete() {
+                        Log.i("RxJava", "onComplete")
+                    }
+
+                })
+
+        //---Çıktı---
+        // ZipOperator
+        // onSubscribe
+        // onNext :A0 B0
+        // onNext :A1 B1
+        // onNext :A2 B2
+        // onNext :A3 B3
+        // onNext :A4 B4
+        // onNext :A5 B5
+        // onComplete
+
+
+    }
+
+    private fun ConcatOperator() {
+        Log.i("RxJava", "ConcatOperator")
+
+        // Concat operatörü de merge gibi birden çok Observable kaynağını birleştirmek için kullanılır.
+        // Merge operatöründen farkı Observable’ların birbirini beklemesidir.
+        // Birinici Observable’ın yayını bittiği andan ikincisi başlar.
+        // İşlemin tamamlanması için bütün Observable’ların yayınını bitirmesi beklenir.
+
+        // 1 saniye arayla 3 tane eleman yayınlıyor
+        val alfabe1 = Observable.intervalRange(0, 3, 1, 1, TimeUnit.SECONDS)
+                .map { id -> "A$id" }
+        // 2 saniye arayla yine 3 tane eleman yayınlıyor.
+        val alfabe2 = Observable.intervalRange(0, 3, 2, 1, TimeUnit.SECONDS)
+                .map { id -> "B$id" }
+
+        Observable.concat(alfabe1, alfabe2)
+                .subscribe(object : Observer<String> {
+                    override fun onSubscribe(d: Disposable) {
+                        Log.i("RxJava", "onSubscribe")
+                    }
+
+                    override fun onNext(t: String) {
+                        Log.i("RxJava", "onNext :$t")
+                    }
+
+                    override fun onError(e: Throwable) {
+                        Log.i("RxJava", "onError")
+                    }
+
+                    override fun onComplete() {
+                        Log.i("RxJava", "onComplete")
+                    }
+
+                })
+        //---Çıktı---
+        // onSubscribe
+        // onNext :A0
+        // onNext :A1
+        // onNext :A2
+        // onNext :B0
+        // onNext :B1
+        // onNext :B2
+        // onComplete
+    }
+
+    private fun MergeOperator() {
+        Log.i("RxJava", "MergeOperator")
+
+        // Merge operatörü birden çok Observable’ı birleştirmek için kullanılır.
+        // Merge içinde kullanılan tüm Observable yayınları aynı anda başlar ve birbirini beklemez,
+        // herhangi bir sıra da gözetilmez.
+        // İşlemin sona ermesi için tüm Observable değerlerinin yayılması gerekmektedir.
+        // Aşağıdaki örnekte birinci Observable 1 saniye arayla 3 tane eleman yayınlıyor,
+        // ikinci Observable ise 2 saniye arayla yine 3 tane eleman yayınlıyor.
+        // Merge işlemi ile iki Observable da yayına başlıyor ve değerleri geldikçe Observer’ın onNext metoduna düşüyor.
+
+        // 1 saniye arayla 3 tane eleman yayınlıyor
+        val alfabe1 = Observable.intervalRange(0, 3, 1, 1, TimeUnit.SECONDS)
+                .map { id -> "A$id" }
+        // 2 saniye arayla yine 3 tane eleman yayınlıyor.
+        val alfabe2 = Observable.intervalRange(0, 3, 2, 1, TimeUnit.SECONDS)
+                .map { id -> "B$id" }
+
+
+        Observable.merge(alfabe1, alfabe2)
+                .subscribe(object : Observer<String> {
+                    override fun onSubscribe(d: Disposable) {
+                        Log.i("RxJava", "onSubscribe")
+                    }
+
+                    override fun onNext(t: String) {
+                        Log.i("RxJava", "onNext $t")
+                    }
+
+                    override fun onError(e: Throwable) {
+                        Log.i("RxJava", "onError")
+                    }
+
+                    override fun onComplete() {
+                        Log.i("RxJava", "onComplete")
+                    }
+
+                })
+
+        //--- Çıktı---
+        // IgnoreElementsOperator
+        // onSubscribe
+        // onNext A0
+        // onNext A1
+        // onNext B0
+        // onNext A2
+        // onNext B1
+        // onNext B2
+        // onComplete
 
     }
 
     private fun TakeLastOperator() {
-        Log.i("RxJava", "IgnoreElementsOperator")
+        Log.i("RxJava", "TakeLastOperator")
         // Take operatöründen farklı olarak ilk değil son n elemanı iletir.
         // Diğerlerini görmezden gelir. takeLast(n) şeklinde kullanılır.
 
@@ -97,7 +340,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun TakeOpearator() {
-        Log.i("RxJava", "IgnoreElementsOperator")
+        Log.i("RxJava", "TakeOpearator")
         // Skip operatörünün tam tersi gibi çalışır.
         // Skip ilk n sayıdaki elemanı görmezden gelirken,take ise sadece ilk n sayıdaki elemanı iletmektedir.
         // take(n) şeklinde kullanılır.
@@ -138,7 +381,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun SkipLastOperator() {
-        Log.i("RxJava", "IgnoreElementsOperator")
+        Log.i("RxJava", "SkipLastOperator")
 
         // Skiplast operatörü,skip operatöründen farklı olarak son n sayıdaki elemanın iletilmesini engeller.
         // skipLast(n) şeklinde kullanılır.
@@ -180,7 +423,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun SkipOperator() {
-        Log.i("RxJava", "IgnoreElementsOperator")
+        Log.i("RxJava", "SkipOperator")
 
         // Skip operatörü Observable’ın yaydığı ilk n elemanı yok sayar ve sonrasındaki elemanları iletir.
         // skip(n) şeklinde kullanılır.
@@ -221,7 +464,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun SampleOperator() {
-        Log.i("RxJava", "IgnoreElementsOperator")
+        Log.i("RxJava", "SampleOperator")
         // Sample operatörü seçilen belli bir periyot sonunda, Observable’ın o periyot içinde yaydığı son elemanı alıp onu iletir.
         // Örneğin aşağıdaki örnekte Observable her saniye değerini Long cinsinden yaymaktadır.
         // Sample, içinde belirtilen 3 saniye periyodu ile her 3 saniye sonunda,Observable tarafından yayınlanan en son elemanı Observer’a iletiyor.
